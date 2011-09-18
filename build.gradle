@@ -1,0 +1,19 @@
+apply plugin: 'java'
+
+defaultTasks 'clean', 'build'
+
+test.useTestNG()
+
+dependencies {
+    compile group: 'org.apfloat', name: 'apfloat', version: '1.6.2', ext: 'jar'
+    testCompile group: 'org.testng', name: 'testng', version: '6.1.1'
+    testCompile group: 'junit', name: 'junit', version: '3.8.2'
+}
+
+repositories {
+    mavenCentral()
+    ivy {
+        name = 'apfloat'
+        artifactPattern "http://www.apfloat.org/apfloat_java/lib/[artifact].[ext]"
+    }
+}
