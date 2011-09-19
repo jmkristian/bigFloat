@@ -1,0 +1,287 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  <title>bigFloat</title>
+  <meta content="John Kristian" name="author">
+</head>
+<body>
+This package was created for storing very large numbers into a database.
+{@link com.linkedin.math.bigFloat.BigFloatCodec} packs a number into a string, or vice-versa.&nbsp; It
+uses an unusual system, with some interesting properties:<br>
+<ul>
+  <li>It can handle really big numbers, with lots of
+bits in the exponent and/or significand.&nbsp; Way more bits than a
+Java double or an Oracle number.<br>
+  </li>
+  <li>When you sort the strings alphabetically, you get the same
+ordering as the numbers they represent.&nbsp; So, you can sort big
+numbers easily.<br>
+  </li>
+</ul>
+Basically, an encoded string contains:<br>
+<ul>
+  <li>4 introductory bits<br>
+  </li>
+  <li>the <a href="http://en.wikipedia.org/wiki/Levenshtein_coding">Levenshtein
+coding</a> of the exponent, padded to a multiple of 4 bits<br>
+  </li>
+  <li>the fractional part of the significand, padded with zeros to a
+multiple of 4 bits</li>
+</ul>
+The first 4 bits represent the number's sign and magnitude:<br>
+<br>
+<div style="margin-left: 40px;">
+<table style="text-align: left;" border="1" cellpadding="6"
+ cellspacing="0">
+  <tbody>
+    <tr>
+      <th style="vertical-align: top; text-align: center;">first 4 bits<br>
+      </th>
+      <th style="vertical-align: top; text-align: center;">number is:<br>
+      </th>
+      <th style="vertical-align: top; text-align: center;">exponent is:<br>
+      </th>
+    </tr>
+    <tr>
+      <th style="vertical-align: top; text-align: center;">b<br>
+      </th>
+      <td style="vertical-align: top; text-align: center;">positive<br>
+      </td>
+      <td style="vertical-align: top; text-align: center;">positive</td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top; text-align: center;">a<br>
+      </th>
+      <td style="vertical-align: top; text-align: center;">positive</td>
+      <td style="vertical-align: top; text-align: center;">negative<br>
+      </td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top; text-align: center;">5<br>
+      </th>
+      <td style="vertical-align: top; text-align: center;">negative</td>
+      <td style="vertical-align: top; text-align: center;">negative</td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top; text-align: center;">4<br>
+      </th>
+      <td style="vertical-align: top; text-align: center;">negative</td>
+      <td style="vertical-align: top; text-align: center;">positive</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<br>
+Other values are used for weird stuff like zero, infinity and NaN (to
+handle IEEE numbers).<br>
+<br>
+The exponent and the signficand are both variable length.&nbsp; So the
+exponent must be decoded first, to know where the significand
+starts.&nbsp; It helps a little to know that the significand starts on
+a hexadecimal character boundary.<br>
+<br>
+Here are some example numbers:<br>
+<br>
+<table style="text-align: left;" summary="Examples" border="1"
+ cellpadding="6" cellspacing="0">
+  <tbody>
+    <tr>
+      <th style="text-align: center;">decimal<br>
+      </th>
+      <th style="text-align: center;">binary scientific<br>
+      </th>
+      <th style="text-align: left;">encoded binary<br>
+      </th>
+      <th style="text-align: center;">encoded hex<br>
+      </th>
+    </tr>
+    <tr>
+      <td style="text-align: center;">5<br>
+      </td>
+      <td style="text-align: center;">1.01 &times; 2<sup>2</sup><br>
+      </td>
+      <td style="font-family: monospace; text-align: left;">1011 1100
+0100</td>
+      <td style="text-align: center;">bc4</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">5/16<br>
+      </td>
+      <td style="text-align: center;">1.01 &times; 2<sup>-2</sup></td>
+      <td style="font-family: monospace; text-align: left;">0110 0011
+0100</td>
+      <td style="text-align: center;">a34</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">-5<br>
+      </td>
+      <td style="text-align: center;">-1.01 &times; 2<sup>2</sup></td>
+      <td style="font-family: monospace; text-align: left;">0100 0010
+1100</td>
+      <td style="text-align: center;">42c</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">53<br>
+      </td>
+      <td style="text-align: center;">1.10101 &times; 2<sup>5</sup></td>
+      <td style="font-family: monospace; text-align: left;">1011
+11100010 10101000<br>
+      </td>
+      <td style="text-align: center;">be2a8</td>
+    </tr>
+  </tbody>
+</table>
+<br>
+Here's how the easy numbers are decoded:<br>
+<br>
+<table style="text-align: left;" border="1" cellpadding="6"
+ cellspacing="0">
+  <tbody>
+    <tr>
+      <th style="vertical-align: top;">scientific<br>
+      </th>
+      <td style="vertical-align: top;">1.01 &times; 2<sup>2</sup></td>
+      <td style="vertical-align: top;">1.10101 &times; 2<sup>5</sup></td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top;">hex<br>
+      </th>
+      <td style="vertical-align: top; font-weight: bold;">bc4</td>
+      <td style="vertical-align: top; font-weight: bold;">be2a8</td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top;">binary<br>
+      </th>
+      <td style="vertical-align: top; font-family: monospace;">1011
+1100 0100</td>
+      <td style="vertical-align: top; font-family: monospace;">1011
+11100010 10101000</td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top;"><br>
+      </th>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">b
+
+      </span>means it's a positive
+number with a positive exponent.<br>
+      <span style="font-weight: bold;">c </span>is the exponent 2,
+Levenshtein coded:
+      <ul>
+        <li><span style="font-weight: bold;">110 </span>has 2 1s
+before
+the first zero, so continue once.<br>
+        </li>
+        <li><span style="font-weight: bold;">0 </span>preceded by 1 =
+2
+(the exponent).<br>
+        </li>
+      </ul>
+      <span style="font-weight: bold;">4 </span>is the fractional part
+of the significand .0100 </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">b
+
+      </span>means it's a positive
+number with a positive exponent.<br>
+      <span style="font-weight: bold;">e2 </span>is the exponent 5,
+Levenshtein coded:
+      <ul>
+        <li><span style="font-weight: bold;">1110 </span>has 3 1s
+before
+the first zero, so continue twice.</li>
+        <li><span style="font-weight: bold;">0 </span>preceded by 1 =
+2, so get the next 2 bits.</li>
+        <li><span style="font-weight: bold;">01 </span>preceded by 1 =
+5
+(the exponent).</li>
+        <li><span style="font-weight: bold;">0 </span>is padding<br>
+        </li>
+      </ul>
+      <span style="font-weight: bold;">a8 </span>is the fractional
+part of the significand .10101000</td>
+    </tr>
+  </tbody>
+</table>
+<br>
+Negative numbers are more complicated.&nbsp; A negative exponent is
+encoded as the bit-wise inverse of the Levenshtein coding of its
+absolute value.&nbsp; When the significand is negative, the exponent
+and significand fit together like a big twos-complement integer:
+they're both inverted, and 1 is added to the significand.<br>
+<br>
+<table style="text-align: left;" border="1" cellpadding="6"
+ cellspacing="0">
+  <tbody>
+    <tr>
+      <th style="vertical-align: top;">scientific<br>
+      </th>
+      <td style="vertical-align: top;">1.01 &times; 2<sup>-2</sup></td>
+      <td style="vertical-align: top;">-1.01 &times; 2<sup>2</sup></td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top;">hex<br>
+      </th>
+      <td style="vertical-align: top; font-weight: bold;">a34</td>
+      <td style="vertical-align: top; font-weight: bold;">42c</td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top;">binary<br>
+      </th>
+      <td style="vertical-align: top; font-family: monospace;">0110
+0011
+0100</td>
+      <td style="vertical-align: top; font-family: monospace;">0100
+0010
+1100</td>
+    </tr>
+    <tr>
+      <th style="vertical-align: top;"><br>
+      </th>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">a
+
+      </span>means it's a positive
+number with a negative exponent.<br>
+      <span style="font-weight: bold;">3 </span>is the exponent -2,
+Levenshtein coded:
+      <ul>
+        <li>the exponent is negative, so invert the bits: 1100<br>
+          <span style="font-weight: bold;"></span></li>
+        <li><span style="font-weight: bold;">110 </span>has 2 1s
+before
+the first zero, so continue once.<br>
+        </li>
+        <li><span style="font-weight: bold;">0 </span>preceded by 1 = 2</li>
+        <li>it's negative, so the exponent is -2<br>
+        </li>
+      </ul>
+      <span style="font-weight: bold;">4 </span>is the fractional part
+of the significand .0100 </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">4
+
+      </span>means it's a negative
+number with a positive exponent.<br>
+      <span style="font-weight: bold;">2 </span>is the exponent 2,
+Levenshtein coded:
+      <ul>
+        <li>the number is negative, so invert the bits: 1101<br>
+          <span style="font-weight: bold;"></span></li>
+        <li><span style="font-weight: bold;">110 </span>has 2 1s
+before
+the first zero, so continue once.</li>
+        <li>the number is negative, so invert the 1<br>
+        </li>
+        <li><span style="font-weight: bold;">0 </span>preceded by 1 =
+2 (the exponent)</li>
+      </ul>
+      <span style="font-weight: bold;">c </span>is a fractional part
+.1100.<br>
+The number is negative, so invert it and add 1:<br>
+.0100<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<ul>
+</ul>
+</body>
+</html>

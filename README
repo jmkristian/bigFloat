@@ -1,0 +1,6 @@
+To build this project, use Gradle <http://www.gradle.org/installation.html>.
+To get oriented, you can build the javadoc by running this command here:
+
+gradle clean javadoc
+
+Then you can read the HTML documentation in build/docs/javadoc/index.html.
