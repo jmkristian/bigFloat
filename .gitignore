@@ -1,2 +1,8 @@
-.gradle
+/.classpath
+/.project
+/.settings
+/bigFloat.iml
+/bigFloat.ipr
+/bigFloat.iws
 /build
+.gradle
