@@ -2,6 +2,7 @@ package com.linkedin.math.bigFloat;
 
 import org.apfloat.Apfloat;
 
+/** A command line program to decode big floats. */
 public class Decode
 {
   /** Decode the given big floats, and print their values in decimal notation. */
