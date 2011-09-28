@@ -20,6 +20,6 @@ repositories {
     }
 }
 
-task publish(dependsOn: javadoc) << {
+task publish(dependsOn: [clean, javadoc]) << {
   ant.exec(failonerror: 'true', executable: './publish.sh')
 }
