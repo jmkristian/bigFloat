@@ -1,5 +1,6 @@
 #!/bin/sh
-rm -r *.html *.css com package-list resources
-cp -pr build/docs/javadoc/* .
+mkdir javadoc
+rm -r javadoc/*
+cp -pr build/docs/javadoc/* javadoc
 git commit -a -m "update javadoc"
 git push github gh-pages
