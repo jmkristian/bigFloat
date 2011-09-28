@@ -1,8 +1,0 @@
-defaultTasks 'clean'
-
-task publish << {
-  ant.delete{fileset(dir: '.', includes: "*.html,*.css,com,package-list,resources")}
-  ant.copy(failonerror: 'true', todir: '.') {fileset(dir: 'build/docs/javadoc')}
-  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'commit -a -m'), arg(value: 'update javadoc')}
-//  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'push github')}
-}
