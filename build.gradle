@@ -21,8 +21,5 @@ repositories {
 }
 
 task publish(dependsOn: javadoc) << {
-  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'checkout gh-pages')}
-  ant.exec(failonerror: 'false', executable: './publish.sh')
-  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'checkout master')}
-//  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'push github master')}
+  ant.exec(failonerror: 'true', executable: './publish.sh')
 }
