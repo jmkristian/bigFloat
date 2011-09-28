@@ -19,3 +19,10 @@ repositories {
         artifactPattern "http://www.apfloat.org/apfloat_java/lib/[artifact].[ext]"
     }
 }
+
+task publish << { // (dependsOn: javadoc)
+  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'checkout gh-pages')}
+  ant.exec(failonerror: 'false', executable: 'gradle') {arg(line: 'publish')}
+  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'checkout master')}
+//  ant.exec(failonerror: 'true', executable: 'git') {arg(line: 'push github')}
+}
