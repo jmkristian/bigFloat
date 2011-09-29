@@ -1,6 +1,6 @@
 #!/bin/sh
-mkdir javadoc
-rm -r javadoc/*
-cp -pr build/docs/javadoc/* javadoc
-git commit -a -m "update javadoc"
-git push github gh-pages
+rm -rf javadoc/*
+cp -pr build/docs/javadoc/* javadoc || exit $?
+git add javadoc || exit $?
+git commit -a -m "update javadoc" || exit $?
+git push github gh-pages || exit $?
