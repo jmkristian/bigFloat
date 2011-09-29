@@ -1,3 +1,5 @@
+Herein is some Java software for handling very large numbers.
+
 To build this project, use Gradle <http://www.gradle.org/installation.html>.
 To get oriented, you can build the javadoc by running this command:
 
