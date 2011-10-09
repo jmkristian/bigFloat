@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=ISO-8859-1"
+      http-equiv="Content-Type">
+    <title>Ranking Active Discussions</title>
+    <meta content="John Kristian" name="author">
+  </head>
+  <body>
+    <h2>Ranking Active Discussions</h2>
+    <p> A while back, we set out to help LinkedIn members find
+      interesting discussions that take place in LinkedIn groups.&nbsp;
+      Interesting discussions are usually active, so we thought we'd
+      show members a summary of discussions, with more active
+      discussions closer to the top of the summary.&nbsp; Activity is
+      represented by requests that come to our web servers, when people
+      contribute to a discussion or click to say they like it.&nbsp; We
+      needed a formula to rank discussions, based on this stream of
+      actions.<span style="font-weight: bold;"></span></p>
+    <p><span style="font-weight: bold;"> </span></p>
+    <h4>Freshness</h4>
+    <p> We knew discussions with more recent activity should rank
+      higher, so we wanted velocity in the formula.&nbsp; My first
+      thought was to use <a
+href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">exponential
+        moving averages</a>.&nbsp; For a sequence of four actions in
+      each of two discussions, they go like this:</p>
+    <p> <img style=" width: 250px; height: 150px;" alt="exponential
+        decay" src="decay.png" align="left" hspace="15">The red
+      discussion gets a higher final score, because its activity is more
+      recent.&nbsp; Actions that occurred in the past get less weight
+      than an action that occurs now.&nbsp; It's something like
+      velocity, and it also remembers old activity.&nbsp; Rankings don't
+      change until actions occur.</p>
+    <p> But this formula doesn't scale up well.&nbsp; The thing is,
+      every discussion's score decays with the passage of time, so it's
+      hard to update rankings on the fly as actions occur.&nbsp; You
+      could update every score every time period, but there are lots of
+      discussions and we'd prefer a short time period.&nbsp; You could
+      update the scores of competing discussions when someone acts on
+      any one of them, but that's still expensive, for lots of
+      discussions and frequent actions.&nbsp; The amount of hardware you
+      need shoots up as traffic grows, because concurrent actions
+      interfere with each other.&nbsp; You start to see simultaneous
+      actions on different discussions, all trying to update the same
+      scores.&nbsp; It takes time and processing power to coordinate
+      them.</p>
+    <p> A more scalable formula gives more weight to current actions,
+      instead of less weight to past actions.&nbsp; For the same
+      sequence of actions, the scores go like this:</p>
+    <p> <img style=" width: 250px; height: 150px;" alt="exponential
+        growth" src="growth.png" align="left" hspace="15">A discussion's
+      score doesn't decay with time; it remains constant when there's no
+      activity.&nbsp; When an action occurs, you update the score of
+      just one discussion, and then rank it compared to the old,
+      unchanged scores of its competitors.&nbsp; The ranking comes out
+      the same as with moving averages, and the formula is more
+      scalable. </p>
+    <p> But this formula has a different problem: the numbers get really
+      big.&nbsp; As time goes by, the weight of a new action increases
+      exponentially, which is scary fast.&nbsp; Floating point
+      arithmetic helps, but it runs out of gas eventually.&nbsp; We
+      figured scores would overflow a Java double in about nine months,
+      and overflow a number in our Oracle database about three months
+      later.&nbsp; I thought we could crack the Java limit in nine
+      months, but the database looked harder.&nbsp; We were going to
+      build up a big database, containing lots of scores.&nbsp; If we
+      changed the storage system, we'd have to grovel through all those
+      scores and convert them, while simultaneously processing actions
+      and updating rankings.&nbsp; (We don't shut down for maintenance,
+      as a rule.)&nbsp; Yuck.</p>
+    <h4> Big Numbers</h4>
+    <p> We thought about storing the printable form of numbers as
+      strings in the database.&nbsp; Using scientific notation, we'd
+      have plenty of room to grow.&nbsp; But we couldn't use the
+      database to find, say, the top ten scores in a group.&nbsp; The
+      database would sort the strings alphabetically, not numerically,
+      so we'd get wrong answers like 10 &lt; 2 (because the string "10"
+      comes before "2" alphabetically).&nbsp; I thought we could cook up
+      a different string format that would sort like the numbers, the
+      same way UTF-8 byte strings sort the same as the characters they
+      represent.&nbsp; But I couldn't think of a format that would
+      handle a vast range of numbers.</p>
+    <p> It was time to get help.&nbsp; I asked a LinkedIn connection to
+      introduce me to a mathematician she knows, and I found some
+      LinkedIn groups devoted to mathematics and posed my question to
+      their members.&nbsp; It sparked some creative thinking and lively
+      discussions.&nbsp; In no time, somebody casually mentioned that
+      some universal codes are lexically ordered.&nbsp; That cracked the
+      problem.&nbsp; We could store a number in binary floating point,
+      with the <a href="http://en.wikipedia.org/wiki/Levenstein_coding">Levenshtein
+        coding</a> of the exponent followed by the fractional part of
+      the significand.&nbsp; You can see the gritty details and the
+      software <a
+        href="http://jmkristian.github.com/bigFloat/">here</a>.</p>
+    <p> </p>
+    <h4>Architecture</h4>
+    <img src="WotC-arch.png" alt="architecture" style=" width: 300px;
+      height: 285px;" align="right" hspace="10">
+    <p>Here's how the system works.&nbsp; Our web servers send a stream
+      of actions to a service that updates scores and rankings.&nbsp;
+      Scores are stored as encoded strings, which are sorted to get the
+      rankings.&nbsp; When a web server needs to show a summary, it
+      calls a service that uses the cached ranking to put together the
+      list of discussions.&nbsp; If the ranking isn't in the cache, the
+      group service queries it from the database and caches it. </p>
+    <p> We launched this system using Java double for calculating
+      scores.&nbsp; Six months later, I went back and replaced Java
+      double with <a href="http://www.apfloat.org/apfloat_java/">Apfloat</a>,
+      an awesome implementation of big numbers.&nbsp; We hit a few bugs
+      in our code, but the design held up fine.<br>
+    </p>
+    <p> Today, the scoring service runs on a small cluster of 4 servers,
+      processing about 500 actions per second at peak.&nbsp; CPUs are
+      about 30% busy at peak, including the activity of several
+      unrelated servers that run on the same machines.&nbsp; The
+      database contains scores for about 500,000 active discussions.</p>
+    <p> Here's some sample data from the database:</p>
+    <table border="1" cellpadding="2" cellspacing="1" style="font-size:smaller;">
+      <tbody>
+        <tr bgcolor="#D4D0C8">
+          <td>DISCUSSION_ID</td>
+          <td>SCORE</td>
+          <td>COMMENTS</td>
+          <td>COMMENT_VELOCITY</td>
+          <td>LIKES</td>
+          <td>LIKE_VELOCITY</td>
+        </tr>
+        <tr>
+          <td><font color="#000000">ANET:S:70500170</font></td>
+          <td><font color="#000000">40a99db36b0f0336473</font></td>
+          <td><font color="#000000">2</font></td>
+          <td><font color="#000000">bf563e5cbcbf6ae14028</font></td>
+          <td><font color="#000000">&nbsp;</font></td>
+          <td><font color="#000000">&nbsp;</font></td>
+        </tr>
+        <tr>
+          <td><font color="#000000">ANET:S:43285584</font></td>
+          <td><font color="#000000">40a9a7bd22e1d9037266</font></td>
+          <td><font color="#000000">2</font></td>
+          <td><font color="#000000">bf5632a72f1833c17b98</font></td>
+          <td><font color="#000000">3</font></td>
+          <td><font color="#000000">bf52fa22ae671d4484a8</font></td>
+        </tr>
+        <tr>
+          <td><font color="#000000">ANET:S:66831722</font></td>
+          <td><font color="#000000">40a9ada6f06efc7ac4e</font></td>
+          <td><font color="#000000">3</font></td>
+          <td><font color="#000000">bf56264be43599890cac</font></td>
+          <td><font color="#000000">1</font></td>
+          <td><font color="#000000">bf562ee03bdd3f85446c</font></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>In decimal notation, those values are approximately:</p>
+    <table border="1" cellpadding="2" cellspacing="1" style="font-size:smaller;">
+      <tbody>
+        <tr bgcolor="#D4D0C8">
+          <td>DISCUSSION_ID</td>
+          <td>SCORE</td>
+          <td>COMMENTS</td>
+          <td>COMMENT_VELOCITY</td>
+          <td>LIKES</td>
+          <td>LIKE_VELOCITY</td>
+        </tr>
+        <tr valign="baseline">
+          <td><font color="#000000">ANET:S:70500170</font></td>
+          <td><font color="#000000">-1.02058819x10<sup>554</sup> </font></td>
+          <td><font color="#000000">2</font></td>
+          <td><font color="#000000">8.164705524x10<sup>548</sup></font></td>
+          <td><font color="#000000">&nbsp;</font></td>
+          <td><font color="#000000">&nbsp;</font></td>
+        </tr>
+        <tr valign="baseline">
+          <td><font color="#000000">ANET:S:43285584</font></td>
+          <td><font color="#000000">-3.096145439x10<sup>552</sup></font></td>
+          <td><font color="#000000">2</font></td>
+          <td><font color="#000000">1.548072719x10<sup>547</sup></font></td>
+          <td><font color="#000000">3</font></td>
+          <td><font color="#000000">1.005358555x10<sup>423</sup></font></td>
+        </tr>
+        <tr valign="baseline">
+          <td><font color="#000000">ANET:S:66831722</font></td>
+          <td><font color="#000000">-4.13625899x10<sup>551</sup></font></td>
+          <td><font color="#000000">3</font></td>
+          <td><font color="#000000">1.897047639x10<sup>545</sup></font></td>
+          <td><font color="#000000">1</font></td>
+          <td><font color="#000000">4.391925137x10<sup>546</sup></font></td>
+        </tr>
+      </tbody>
+    </table>
+    <h4> Adjustments</h4>
+    <p> We changed the scoring formula a few times.</p>
+    <ul>
+      <li>We reduced the doubling time of velocity weights, to make
+        'flash in the pan' discussions drop down through the ranking
+        faster.&nbsp; The transition took a little math: we changed the
+        <a
+          href="http://en.wikipedia.org/wiki/Epoch_%28reference_date%29#Computing">
+          epoch</a> and the doubling time simultaneously, so velocity
+        weights accelerated smoothly, without an abrupt jump at
+        transition time.</li>
+      <li>The original formula included actions like viewing a
+        discussion and sharing a discussion into another group.&nbsp;
+        Members were puzzled and annoyed by the resulting rankings,
+        since they couldn't see the activity that went into them.&nbsp;
+        So we dropped the invisible actions out of the formula and
+        recomputed all the scores in the database, which took a few
+        days.&nbsp; Thank goodness we store counts and velocity for each
+        type of action, so we had the data we needed.&nbsp; The rankings
+        were a little off during this transition, but they all came out
+        right in the end.</li>
+    </ul>
+    <p> The ranking works pretty well.&nbsp; We know the system
+      encourages members to visit their groups more frequently.&nbsp; As
+      usual, we'll run with it until we think of something better.</p>
+    - <a
+href="mailto:jkristian@linkedin.com?subject=Re:%20Ranking%20Active%20Discussions">John
+      Kristian</a>
+    <br>
+  </body>
+</html>
