@@ -23,11 +23,15 @@
       higher, so we wanted velocity in the formula.&nbsp; My first
       thought was to use <a
 href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">exponential
+
+
+
+
         moving averages</a>.&nbsp; For a sequence of four actions in
       each of two discussions, they go like this:</p>
-    <p> <img style=" width: 250px; height: 150px;" alt="exponential
-        decay" src="decay.png" align="left" hspace="15">The red
-      discussion gets a higher final score, because its activity is more
+    <p> <img style=" width: 400px; height: 200px;" alt="exponential
+        decay" src="decay2.png" align="left" hspace="15">Discussion 2
+      gets a higher final score, because its activity is more
       recent.&nbsp; Actions that occurred in the past get less weight
       than an action that occurs now.&nbsp; It's something like
       velocity, and it also remembers old activity.&nbsp; Rankings don't
@@ -48,27 +52,31 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
     <p> A more scalable formula gives more weight to current actions,
       instead of less weight to past actions.&nbsp; For the same
       sequence of actions, the scores go like this:</p>
-    <p> <img style=" width: 250px; height: 150px;" alt="exponential
-        growth" src="growth.png" align="left" hspace="15">A discussion's
-      score doesn't decay with time; it remains constant when there's no
-      activity.&nbsp; When an action occurs, you update the score of
-      just one discussion, and then rank it compared to the old,
-      unchanged scores of its competitors.&nbsp; The ranking comes out
-      the same as with moving averages, and the formula is more
+    <p> <img style=" width: 400px; height: 200px;" alt="exponential
+        growth" src="growth2.png" align="left" hspace="15">A
+      discussion's score doesn't decay with time; it remains constant
+      when there's no activity.&nbsp; When an action occurs, you update
+      the score of just one discussion, and then rank it compared to the
+      old, unchanged scores of its competitors.&nbsp; The ranking comes
+      out the same as with moving averages, and the formula is more
       scalable. </p>
     <p> But this formula has a different problem: the numbers get really
       big.&nbsp; As time goes by, the weight of a new action increases
-      exponentially, which is scary fast.&nbsp; Floating point
-      arithmetic helps, but it runs out of gas eventually.&nbsp; We
-      figured scores would overflow a Java double in about nine months,
-      and overflow a number in our Oracle database about three months
-      later.&nbsp; I thought we could crack the Java limit in nine
-      months, but the database looked harder.&nbsp; We were going to
-      build up a big database, containing lots of scores.&nbsp; If we
-      changed the storage system, we'd have to grovel through all those
-      scores and convert them, while simultaneously processing actions
-      and updating rankings.&nbsp; (We don't shut down for maintenance,
-      as a rule.)&nbsp; Yuck.</p>
+      exponentially, which is scary fast.&nbsp; For example, if the
+      weight doubles daily, an event that scores 1 today would score 128
+      a week from now, 16,384 two weeks from now, about 1,000,000,000 a
+      month from now and about 7.5 x 10<sup>109</sup> a year from now.<br>
+    </p>
+    <p>Floating point arithmetic can handle pretty big numbers, but it
+      runs out of gas eventually.&nbsp; We figured scores would overflow
+      a Java double in about nine months, and overflow a number in our
+      Oracle database about three months later.&nbsp; I thought we could
+      crack the Java limit in nine months, but the database looked
+      harder.&nbsp; We were going to build up a big database, containing
+      lots of scores.&nbsp; If we changed the storage system, we'd have
+      to grovel through all those scores and convert them, while
+      simultaneously processing actions and updating rankings.&nbsp; (We
+      don't shut down for maintenance, as a rule.)&nbsp; Yuck.</p>
     <h4> Big Numbers</h4>
     <p> We thought about storing the printable form of numbers as
       strings in the database.&nbsp; Using scientific notation, we'd
@@ -89,10 +97,13 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
       some universal codes are lexically ordered.&nbsp; That cracked the
       problem.&nbsp; We could store a number in binary floating point,
       with the <a href="http://en.wikipedia.org/wiki/Levenstein_coding">Levenshtein
+
+
+
+
         coding</a> of the exponent followed by the fractional part of
       the significand.&nbsp; You can see the gritty details and the
-      software <a
-        href="http://jmkristian.github.com/bigFloat/">here</a>.</p>
+      software <a href="http://jmkristian.github.com/bigFloat/">here</a>.</p>
     <p> </p>
     <h4>Architecture</h4>
     <img src="WotC-arch.png" alt="architecture" style=" width: 300px;
@@ -116,7 +127,8 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
       unrelated servers that run on the same machines.&nbsp; The
       database contains scores for about 500,000 active discussions.</p>
     <p> Here's some sample data from the database:</p>
-    <table border="1" cellpadding="2" cellspacing="1" style="font-size:smaller;">
+    <table style="font-size:smaller;" border="1" cellpadding="2"
+      cellspacing="1">
       <tbody>
         <tr bgcolor="#D4D0C8">
           <td>DISCUSSION_ID</td>
@@ -153,7 +165,8 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
       </tbody>
     </table>
     <p>In decimal notation, those values are approximately:</p>
-    <table border="1" cellpadding="2" cellspacing="1" style="font-size:smaller;">
+    <table style="font-size:smaller;" border="1" cellpadding="2"
+      cellspacing="1">
       <tbody>
         <tr bgcolor="#D4D0C8">
           <td>DISCUSSION_ID</td>
@@ -216,7 +229,11 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
       usual, we'll run with it until we think of something better.</p>
     - <a
 href="mailto:jkristian@linkedin.com?subject=Re:%20Ranking%20Active%20Discussions">John
-      Kristian</a>
+
+
+
+
+      Kristian</a> <br>
     <br>
   </body>
 </html>
