@@ -24,9 +24,6 @@
       thought was to use <a
 href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">exponential
 
-
-
-
         moving averages</a>.&nbsp; For a sequence of four actions in
       each of two discussions, they go like this:</p>
     <p> <img style=" width: 400px; height: 200px;" alt="exponential
@@ -98,12 +95,55 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
       problem.&nbsp; We could store a number in binary floating point,
       with the <a href="http://en.wikipedia.org/wiki/Levenstein_coding">Levenshtein
 
-
-
-
         coding</a> of the exponent followed by the fractional part of
-      the significand.&nbsp; You can see the gritty details and the
-      software <a href="http://jmkristian.github.com/bigFloat/">here</a>.</p>
+      the significand.&nbsp; For example, the number 14.25 would be
+      stored as "dc8".<br>
+    </p>
+    <table style="text-align: right;" border="0" cellpadding="6"
+      cellspacing="0">
+      <tbody>
+        <tr style="text-align: center;">
+          <th style="vertical-align: baseline;">&nbsp;</th>
+          <th style="vertical-align: baseline;">binary</th>
+          <th style="vertical-align: baseline;">hexadecimal</th>
+        </tr>
+        <tr>
+          <td>14.25 =<br>
+          </td>
+          <td style="vertical-align: baseline;">1110.01</td>
+          <td style="vertical-align: baseline;">e.4</td>
+        </tr>
+        <tr>
+          <td>in floating point:</td>
+          <td style="vertical-align: baseline;">1.11001 x 2<sup>3</sup></td>
+          <td style="vertical-align: baseline;">1.c8 x 2<sup>3</sup></td>
+        </tr>
+        <tr>
+          <td>exponent:</td>
+          <td style="vertical-align: baseline;">11</td>
+          <td style="vertical-align: baseline;">3</td>
+        </tr>
+        <tr>
+          <td>Levenshtein coded exponent:</td>
+          <td style="vertical-align: baseline;">1101</td>
+          <td style="vertical-align: baseline;">d</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: baseline;">fractional part of
+            significand:</td>
+          <td style="vertical-align: baseline;">11001000</td>
+          <td style="vertical-align: baseline;">c8</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: baseline;">string format:</td>
+          <td style="vertical-align: baseline;"><br>
+          </td>
+          <td style="vertical-align: baseline;">dc8</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>You can see the gritty details and the software <a
+        href="http://jmkristian.github.com/bigFloat/">here</a>.</p>
     <p> </p>
     <h4>Architecture</h4>
     <img src="WotC-arch.png" alt="architecture" style=" width: 300px;
@@ -229,6 +269,13 @@ href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">ex
       usual, we'll run with it until we think of something better.</p>
     - <a
 href="mailto:jkristian@linkedin.com?subject=Re:%20Ranking%20Active%20Discussions">John
+
+
+
+
+
+
+
 
 
 
